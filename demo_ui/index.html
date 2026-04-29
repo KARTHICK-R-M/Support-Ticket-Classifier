@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Support Ticket Classifier</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #f7f6f2;
+      --surface: #fbfbf9;
+      --surface-alt: #f3f0ec;
+      --border: #d4d1ca;
+      --divider: #e2ded4;
+      --text: #28251d;
+      --text-muted: #7a7974;
+      --text-soft: #9b9a93;
+      --primary: #01696f;
+      --primary-soft: #e0f0ee;
+      --danger: #a12c7b;
+      --warning: #b07a00;
+      --success: #437a22;
+      --shadow-sm: 0 10px 30px rgba(15, 23, 42, 0.06);
+      --radius-lg: 18px;
+      --radius-md: 10px;
+      --radius-pill: 999px;
+      --transition-fast: 160ms ease-out;
+    }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, #ece6d8, #f7f6f2 40%, #fdfdfb 80%);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header ---------------------------------------------------------------- */
+    header {
+      padding: 16px 24px 12px;
+      border-bottom: 1px solid rgba(212, 209, 202, 0.7);
+      backdrop-filter: blur(12px);
+      background: linear-gradient(
+        to right,
+        rgba(251, 251, 249, 0.96),
+        rgba(247, 246, 242, 0.96)
+      );
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .header-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 32%;
+      background: radial-gradient(circle at 30% 20%, #ffffff, #cee3df);
+      border: 1px solid rgba(1, 105, 111, 0.25);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      box-shadow: 0 10px 20px rgba(1, 105, 111, 0.14);
+    }
+
+    .brand-title {
+      font-size: 0.95rem;
+      font-weight: 650;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .brand-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .model-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(0,0,0,0.04);
+      background: rgba(255,255,255,0.9);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .model-pill-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--primary);
+    }
+
+    /* Layout ---------------------------------------------------------------- */
+    .main {
+      flex: 1;
+      max-width: 1120px;
+      width: 100%;
+      margin: 18px auto 20px;
+      padding: 0 16px 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    @media (max-width: 860px) {
+      .main {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .panel {
+      background: rgba(251, 251, 249, 0.98);
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(212, 209, 202, 0.8);
+      box-shadow: var(--shadow-sm);
+      padding: 16px 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .panel-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.13em;
+      color: var(--text-muted);
+    }
+
+    .panel-caption {
+      font-size: 0.78rem;
+      color: var(--text-soft);
+    }
+
+    /* Input side ------------------------------------------------------------ */
+    .samples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
+    .sample-btn {
+      background: #ffffff;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(0,0,0,0.06);
+      color: var(--text-soft);
+      font-size: 0.78rem;
+      padding: 5px 11px;
+      cursor: pointer;
+      transition:
+        background var(--transition-fast),
+        border-color var(--transition-fast),
+        color var(--transition-fast),
+        box-shadow var(--transition-fast);
+    }
+
+    .sample-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      box-shadow: 0 4px 10px rgba(1,105,111,0.18);
+    }
+
+    label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      background: #ffffff;
+      color: var(--text);
+      font-size: 0.9rem;
+      line-height: 1.5;
+      resize: vertical;
+      outline: none;
+      transition:
+        border-color var(--transition-fast),
+        box-shadow var(--transition-fast),
+        background var(--transition-fast);
+    }
+
+    textarea::placeholder {
+      color: #b0aea7;
+    }
+
+    textarea:focus {
+      border-color: var(--primary);
+      background: #ffffff;
+      box-shadow: 0 0 0 1px rgba(1, 105, 111, 0.08);
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+      flex-wrap: wrap;
+    }
+
+    select {
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      font-size: 0.82rem;
+      background: #ffffff;
+      color: var(--text-soft);
+      outline: none;
+    }
+
+    .classify-btn {
+      flex: 1;
+      min-width: 160px;
+      border-radius: var(--radius-pill);
+      border: none;
+      padding: 8px 18px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--primary), #0c4e54);
+      box-shadow: 0 10px 20px rgba(1,105,111,0.32);
+      transition:
+        background var(--transition-fast),
+        transform 80ms ease-out,
+        box-shadow var(--transition-fast),
+        opacity var(--transition-fast);
+    }
+
+    .classify-btn:hover {
+      background: linear-gradient(135deg, #0c4e54, var(--primary));
+      transform: translateY(-1px);
+      box-shadow: 0 14px 26px rgba(1,105,111,0.34);
+    }
+
+    .classify-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 6px 10px rgba(1,105,111,0.24);
+    }
+
+    .classify-btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    .hint {
+      font-size: 0.76rem;
+      color: var(--text-soft);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.45);
+      border-top-color: #ffffff;
+      margin-right: 6px;
+      animation: spin 0.6s linear infinite;
+      vertical-align: -2px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Results side ---------------------------------------------------------- */
+    .result-body {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .empty-state {
+      border-radius: var(--radius-md);
+      border: 1px dashed rgba(0,0,0,0.08);
+      background: var(--surface-alt);
+      padding: 20px 16px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-soft);
+      font-size: 0.85rem;
+    }
+
+    .empty-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 2px;
+      color: var(--text-muted);
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+      gap: 10px;
+    }
+
+    .card {
+      border-radius: 12px;
+      background: #ffffff;
+      border: 1px solid rgba(0,0,0,0.04);
+      padding: 8px 10px;
+      font-size: 0.8rem;
+    }
+
+    .card-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.11em;
+      color: var(--text-soft);
+      margin-bottom: 2px;
+    }
+
+    .card-value {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .card-wide {
+      grid-column: 1 / -1;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3px 9px;
+      border-radius: var(--radius-pill);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .priority-low {
+      background: rgba(67,122,34,0.08);
+      color: var(--success);
+      border: 1px solid rgba(67,122,34,0.45);
+    }
+
+    .priority-medium {
+      background: rgba(176,122,0,0.08);
+      color: var(--warning);
+      border: 1px solid rgba(176,122,0,0.45);
+    }
+
+    .priority-high {
+      background: rgba(1,105,111,0.08);
+      color: var(--primary);
+      border: 1px solid rgba(1,105,111,0.45);
+    }
+
+    .priority-critical {
+      background: rgba(161,44,123,0.08);
+      color: var(--danger);
+      border: 1px solid rgba(161,44,123,0.45);
+    }
+
+    .sentiment-positive {
+      background: rgba(67,122,34,0.08);
+      color: var(--success);
+      border: 1px solid rgba(67,122,34,0.45);
+    }
+
+    .sentiment-neutral {
+      background: rgba(0,0,0,0.04);
+      color: var(--text-soft);
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+
+    .sentiment-negative {
+      background: rgba(176,122,0,0.08);
+      color: var(--warning);
+      border: 1px solid rgba(176,122,0,0.45);
+    }
+
+    .sentiment-angry {
+      background: rgba(161,44,123,0.08);
+      color: var(--danger);
+      border: 1px solid rgba(161,44,123,0.45);
+    }
+
+    .confidence-bar-wrap {
+      background: var(--surface-alt);
+      border-radius: var(--radius-pill);
+      height: 7px;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+
+    .confidence-bar {
+      height: 100%;
+      border-radius: var(--radius-pill);
+      background: linear-gradient(90deg, var(--primary), var(--success));
+      width: 0%;
+      transition: width 180ms ease-out;
+    }
+
+    .reasoning {
+      font-size: 0.82rem;
+      color: var(--text-soft);
+      line-height: 1.5;
+      margin-top: 2px;
+    }
+
+    .human-review-flag {
+      grid-column: 1 / -1;
+      border-radius: 10px;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: rgba(176,122,0,0.06);
+      border: 1px solid rgba(176,122,0,0.45);
+      color: var(--warning);
+    }
+
+    .injection-flag {
+      grid-column: 1 / -1;
+      border-radius: 10px;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: rgba(161,44,123,0.06);
+      border: 1px solid rgba(161,44,123,0.55);
+      color: var(--danger);
+    }
+
+    .error-msg {
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 0.82rem;
+      background: rgba(161,44,123,0.06);
+      border: 1px solid rgba(161,44,123,0.55);
+      color: var(--danger);
+      text-align: left;
+    }
+
+    /* Status strip ---------------------------------------------------------- */
+    .status-strip {
+      border-top: 1px solid var(--divider);
+      background: rgba(251, 251, 249, 0.96);
+      padding: 8px 20px 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      font-size: 0.78rem;
+      color: var(--text-soft);
+      justify-content: center;
+    }
+
+    .status-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: var(--radius-pill);
+      background: rgba(0,0,0,0.015);
+    }
+
+    .status-item span.value {
+      font-weight: 550;
+      color: var(--text-muted);
+    }
+
+    .pii-badge {
+      color: var(--danger);
+      font-weight: 650;
+    }
+
+    .pii-clean {
+      color: var(--success);
+      font-weight: 650;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-icon">
+        <!-- simple check icon -->
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M7 12.5l3 3.5 7-8.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-title">Support Ticket Classifier</div>
+        <div class="brand-subtitle">LangGraph · OpenRouter</div>
+      </div>
+    </div>
+    <div class="model-pill">
+      <span class="model-pill-dot"></span>
+      <span id="model-chip">Model: openrouter/free · v2</span>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+  <!-- LEFT: Input Panel -->
+  <section class="panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title">Ticket</div>
+        <div class="panel-caption">Paste a real ticket or start from a sample.</div>
+      </div>
+    </div>
+
+    <div>
+      <label>Sample tickets</label>
+      <div class="samples">
+        <button class="sample-btn" onclick="fillSample(0)">📦 Delayed delivery</button>
+        <button class="sample-btn" onclick="fillSample(1)">💳 Double charged</button>
+        <button class="sample-btn" onclick="fillSample(2)">🔐 Login broken</button>
+      </div>
+    </div>
+
+    <div>
+      <label for="ticketText">Ticket description</label>
+      <textarea id="ticketText" placeholder="Paste or type a customer support ticket here…"></textarea>
+    </div>
+
+    <div>
+      <label for="channel">Channel</label>
+      <div class="controls">
+        <select id="channel">
+          <option value="web_form">Web form</option>
+          <option value="email">Email</option>
+        </select>
+        <button class="classify-btn" id="classifyBtn" onclick="classify()">
+          Classify ticket
+        </button>
+      </div>
+      <p class="hint" id="hint">
+        The model assigns category, team, priority, sentiment, confidence, and flags human review if needed.
+      </p>
+    </div>
+  </section>
+
+  <!-- RIGHT: Results Panel -->
+  <section class="panel" id="resultsPanel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title">Result</div>
+        <div class="panel-caption">Model output for the latest ticket.</div>
+      </div>
+    </div>
+
+    <div class="result-body">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <rect x="5" y="4" width="14" height="16" rx="2.5" stroke="currentColor" stroke-width="1.4"/>
+            <path d="M9 8h6M9 12h6M9 16h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>Submit a ticket to see the classification result.</div>
+      </div>
+
+      <div class="result-grid" id="resultGrid" style="display:none;"></div>
+    </div>
+  </section>
+</div>
+
+<!-- Status strip -->
+<div class="status-strip" id="statusStrip">
+  <div class="status-item">
+    <span>Tokens</span>
+    <span class="value" id="statusTokens">—</span>
+  </div>
+  <div class="status-item">
+    <span>Cost</span>
+    <span class="value" id="statusCost">—</span>
+  </div>
+  <div class="status-item">
+    <span>PII</span>
+    <span class="value" id="statusPii">—</span>
+  </div>
+  <div class="status-item">
+    <span>Prompt</span>
+    <span class="value" id="statusPrompt">—</span>
+  </div>
+</div>
+
+<script>
+  const SAMPLES = [
+    {
+      channel: "web_form",
+      text: "I am absolutely furious! My package was supposed to arrive 5 days ago and it still hasn't shown up. I've been waiting at home all week. This is completely unacceptable. Order #98765. I want an immediate update or a full refund!\nEmail: sanjay@xyzmail.com\nCredit card number: 1234 5678 9012 3456",
+    },
+    {
+      channel: "email",
+      text: "Subject: Double charge on my account\n\nHello,\n\nI noticed I was charged twice for the same order (#44321) placed on March 15th. Both charges of $89.99 appear on my bank statement. Please refund one of the charges.\n\nThank you,\nA frustrated customer",
+    },
+    {
+      channel: "web_form",
+      text: "I can't log into my account at all. I keep getting 'Invalid credentials' even though I just reset my password 3 times. I need to access my order history urgently. Please help — I've been locked out for 2 days.",
+    },
+  ];
+
+  function fillSample(index) {
+    const s = SAMPLES[index];
+    document.getElementById("ticketText").value = s.text;
+    document.getElementById("channel").value = s.channel;
+  }
+
+  function priorityClass(p) {
+    return {
+      low: "priority-low",
+      medium: "priority-medium",
+      high: "priority-high",
+      critical: "priority-critical",
+    }[(p || "").toLowerCase()] || "";
+  }
+
+  function sentimentClass(s) {
+    return {
+      positive: "sentiment-positive",
+      neutral: "sentiment-neutral",
+      negative: "sentiment-negative",
+      angry: "sentiment-angry",
+    }[(s || "").toLowerCase()] || "";
+  }
+
+  function formatCategory(s) {
+    if (!s) return "—";
+    return s.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  async function classify() {
+    const text = document.getElementById("ticketText").value.trim();
+    if (!text) {
+      document.getElementById("ticketText").focus();
+      return;
+    }
+
+    const btn = document.getElementById("classifyBtn");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Classifying…';
+
+    document.getElementById("emptyState").style.display = "flex";
+    document.getElementById("emptyState").innerHTML =
+      '<div class="empty-icon"><div class="spinner" style="margin:0;"></div></div><div>Running the classification pipeline…</div>';
+    document.getElementById("resultGrid").style.display = "none";
+
+    try {
+      const resp = await fetch("http://localhost:8000/classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ticket_text: text,
+          channel: document.getElementById("channel").value,
+        }),
+      });
+
+      if (!resp.ok) {
+        let message = `HTTP ${resp.status}`;
+        try {
+          const err = await resp.json();
+          if (err.detail) message = err.detail;
+        } catch (_) {}
+        throw new Error(message);
+      }
+
+      const data = await resp.json();
+      renderResult(data);
+    } catch (e) {
+      document.getElementById("emptyState").style.display = "flex";
+      document.getElementById("emptyState").innerHTML =
+        `<div class="error-msg">Error: ${e.message}</div>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Classify ticket";
+    }
+  }
+
+  function renderResult(d) {
+    const grid = document.getElementById("resultGrid");
+    const cls = d.classification || d; // depending on your API shape
+
+    const conf = typeof cls.confidence_score === "number" ? cls.confidence_score : null;
+    const confPct = conf != null ? Math.round(conf * 100) : null;
+
+    grid.innerHTML = `
+      <div class="card">
+        <div class="card-label">Category</div>
+        <div class="card-value">${formatCategory(cls.issue_category)}</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Assigned team</div>
+        <div class="card-value">${formatCategory(cls.assigned_team)}</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Priority</div>
+        <div class="card-value">
+          ${cls.priority ? `<span class="badge ${priorityClass(cls.priority)}">${cls.priority.toUpperCase()}</span>` : "—"}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">Sentiment</div>
+        <div class="card-value">
+          ${cls.user_sentiment ? `<span class="badge ${sentimentClass(cls.user_sentiment)}">${cls.user_sentiment.toUpperCase()}</span>` : "—"}
+        </div>
+      </div>
+      <div class="card card-wide">
+        <div class="card-label">Confidence ${confPct != null ? "— " + confPct + "%" : ""}</div>
+        <div class="confidence-bar-wrap">
+          <div class="confidence-bar" style="width:${confPct != null ? confPct : 0}%;"></div>
+        </div>
+      </div>
+      <div class="card card-wide">
+        <div class="card-label">Reasoning</div>
+        <div class="reasoning">${cls.reasoning || "No reasoning returned."}</div>
+      </div>
+      ${cls.requires_human_review ? '<div class="human-review-flag">⚠ Flagged for human review</div>' : ""}
+      ${d.injection_blocked ? '<div class="injection-flag">🚫 Injection attempt blocked</div>' : ""}
+    `;
+
+    // Status strip
+    const cost = d.cost_info;
+    document.getElementById("statusTokens").textContent =
+      cost ? `${cost.input_tokens} in · ${cost.output_tokens} out` : "—";
+    document.getElementById("statusCost").textContent =
+      cost ? `$${cost.total_cost_usd.toFixed(6)}` : "—";
+    document.getElementById("statusPii").innerHTML =
+      d.pii_detected
+        ? '<span class="pii-badge">PII redacted</span>'
+        : '<span class="pii-clean">Clean</span>';
+    document.getElementById("statusPrompt").textContent =
+      d.prompt_version || "—";
+
+    document.getElementById("emptyState").style.display = "none";
+    grid.style.display = "grid";
+  }
+</script>
+</body>
+</html>
